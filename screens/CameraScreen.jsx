@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
-export default function CameraScreen() {
+export default function CameraScreen({ navigation }) {
   const cameraRef = useRef(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [photoUri, setPhotoUri] = useState(null);
@@ -12,9 +12,10 @@ export default function CameraScreen() {
       return;
     }
 
-    const result = await cameraRef.current.takePictureAsync({ quality: 0.7 });
+    const result = await cameraRef.current.takePictureAsync({ quality: 0.3 });
     setPhotoUri(result.uri);
     console.log(result.uri);
+    navigation.navigate('Preview', { photoUri: result.uri });
   };
 
   if (permission === null) {

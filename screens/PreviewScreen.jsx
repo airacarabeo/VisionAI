@@ -1,7 +1,14 @@
 import { View, Image, TouchableOpacity, Text, StyleSheet } from 'react-native';
 
+import { imageToBase64 } from '../lib/gemini';
+
 export default function PreviewScreen({ route, navigation }) {
   const { photoUri } = route.params;
+
+  const handleAnalyze = async () => {
+    const base64Image = await imageToBase64(photoUri);
+    navigation.navigate('Result', { base64Image });
+  };
 
   return (
     <View style={styles.container}>
@@ -14,7 +21,7 @@ export default function PreviewScreen({ route, navigation }) {
 
         <TouchableOpacity
           style={[styles.button, styles.analyzeButton]}
-          onPress={() => navigation.navigate('Result', { photoUri })}>
+          onPress={handleAnalyze}>
           <Text style={styles.buttonText}>Analyze</Text>
         </TouchableOpacity>
       </View>
