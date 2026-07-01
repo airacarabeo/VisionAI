@@ -5,17 +5,37 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 export default function CameraScreen({ navigation }) {
   const cameraRef = useRef(null);
   const [permission, requestPermission] = useCameraPermissions();
+  const [cameraReady, setCameraReady] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [captureError, setCaptureError] = useState(null);
   const [photoUri, setPhotoUri] = useState(null);
 
   const takePicture = async () => {
-    if (!cameraRef.current) {
+    if (!cameraRef.current || !cameraReady || isCapturing) {
       return;
     }
 
-    const result = await cameraRef.current.takePictureAsync({ quality: 0.3 });
-    setPhotoUri(result.uri);
-    console.log(result.uri);
-    navigation.navigate('Preview', { photoUri: result.uri });
+    try {
+      setIsCapturing(true);
+      setCaptureError(null);
+
+      const result = await cameraRef.current.takePictureAsync({
+        quality: 0.3,
+        skipProcessing: true,
+      });
+
+      if (!result?.uri) {
+        setCaptureError('Could not capture image. Please try again.');
+        return;
+      }
+
+      setPhotoUri(result.uri);
+      navigation.navigate('Preview', { photoUri: result.uri });
+    } catch {
+      setCaptureError('Failed to capture image. Please try again.');
+    } finally {
+      setIsCapturing(false);
+    }
   };
 
   if (permission === null) {
@@ -33,12 +53,22 @@ export default function CameraScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing="back" />
+      <CameraView
+        ref={cameraRef}
+        style={styles.camera}
+        facing="back"
+        onCameraReady={() => setCameraReady(true)}
+      />
+      {captureError ? <Text style={styles.captureError}>{captureError}</Text> : null}
       <View style={styles.captureContainer} testID={photoUri ? 'photo-captured' : 'photo-not-captured'}>
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Capture photo"
-          style={styles.captureButton}
+          disabled={!cameraReady || isCapturing}
+          style={[
+            styles.captureButton,
+            (!cameraReady || isCapturing) && styles.captureButtonDisabled,
+          ]}
           onPress={takePicture}
         />
       </View>
@@ -68,6 +98,19 @@ const styles = StyleSheet.create({
     borderWidth: 5,
     borderColor: '#fff',
     backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  captureButtonDisabled: {
+    opacity: 0.5,
+  },
+  captureError: {
+    position: 'absolute',
+    right: 24,
+    bottom: 128,
+    left: 24,
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   permissionContainer: {
     flex: 1,

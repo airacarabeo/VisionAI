@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 
 import { analyzeImage } from '../lib/gemini';
 
-const ANALYSIS_PROMPT = `Analyze this image and return ONLY valid JSON in this exact shape:
+const JSON_FORMAT_INSTRUCTIONS = `Return ONLY valid JSON in this exact shape:
 {
   "objects": [],
   "context": "",
@@ -11,15 +11,28 @@ const ANALYSIS_PROMPT = `Analyze this image and return ONLY valid JSON in this e
   "recommendations": ""
 }`;
 
+const PROMPTS = {
+  academic: `Act as a university professor. Looking at this image, provide an academic-style analysis: identify the objects present, the educational context, and one piece of constructive feedback.
+
+${JSON_FORMAT_INSTRUCTIONS}`,
+  safety: `Act as a workplace safety inspector. Looking at this image, identify any visible hazards, risks, or safety concerns. If none are visible, state that clearly.
+
+${JSON_FORMAT_INSTRUCTIONS}`,
+  inventory: `Act as an asset management clerk. Looking at this image, list every visible physical asset as a clean inventory list, with no extra commentary.
+
+${JSON_FORMAT_INSTRUCTIONS}`,
+};
+
 export default function ResultScreen({ route }) {
-  const { base64Image } = route.params;
+  const { base64Image, promptKey } = route.params;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analysis, setAnalysis] = useState(null);
 
   async function runAnalysis() {
     try {
-      const result = await analyzeImage(base64Image, ANALYSIS_PROMPT);
+      const prompt = PROMPTS[promptKey] || PROMPTS.academic;
+      const result = await analyzeImage(base64Image, prompt);
       const text = result.candidates[0].content.parts[0].text;
       const parsedAnalysis = JSON.parse(text);
 

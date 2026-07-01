@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 
 import CameraScreen from './screens/CameraScreen';
+import HistoryScreen from './screens/HistoryScreen';
 import PreviewScreen from './screens/PreviewScreen';
 import ResultScreen from './screens/ResultScreen';
 
@@ -18,6 +19,7 @@ export default function App() {
           headerShown: false,
         }}>
         <Stack.Screen name="Camera" component={CameraScreen} />
+        <Stack.Screen name="History" component={HistoryScreen} />
         <Stack.Screen name="Preview" component={PreviewScreen} />
         <Stack.Screen name="Result" component={ResultScreen} />
       </Stack.Navigator>

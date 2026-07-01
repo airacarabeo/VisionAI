@@ -5,24 +5,32 @@ import { imageToBase64 } from '../lib/gemini';
 export default function PreviewScreen({ route, navigation }) {
   const { photoUri } = route.params;
 
-  const handleAnalyze = async () => {
+  const goAnalyze = async (promptKey) => {
     const base64Image = await imageToBase64(photoUri);
-    navigation.navigate('Result', { base64Image });
+    navigation.navigate('Result', { base64Image, promptKey });
   };
 
   return (
     <View style={styles.container}>
       <Image source={{ uri: photoUri }} style={styles.previewImage} resizeMode="contain" />
 
+      <View style={styles.personaRow}>
+        <TouchableOpacity style={[styles.personaButton, styles.academicButton]} onPress={() => goAnalyze('academic')}>
+          <Text style={styles.personaLabel}>Academic Analysis</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.personaButton, styles.safetyButton]} onPress={() => goAnalyze('safety')}>
+          <Text style={styles.personaLabel}>Safety Analysis</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.personaButton, styles.inventoryButton]} onPress={() => goAnalyze('inventory')}>
+          <Text style={styles.personaLabel}>Inventory Analysis</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.buttonRow}>
         <TouchableOpacity style={[styles.button, styles.retakeButton]} onPress={() => navigation.goBack()}>
           <Text style={styles.buttonText}>Retake</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.analyzeButton]}
-          onPress={handleAnalyze}>
-          <Text style={styles.buttonText}>Analyze</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -37,6 +45,34 @@ const styles = StyleSheet.create({
   previewImage: {
     flex: 1,
     width: '100%',
+  },
+  personaRow: {
+    gap: 10,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    backgroundColor: '#000',
+  },
+  personaButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  academicButton: {
+    backgroundColor: '#2563EB',
+  },
+  safetyButton: {
+    backgroundColor: '#DC2626',
+  },
+  inventoryButton: {
+    backgroundColor: '#059669',
+  },
+  personaLabel: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -55,9 +91,6 @@ const styles = StyleSheet.create({
   },
   retakeButton: {
     backgroundColor: '#4B5563',
-  },
-  analyzeButton: {
-    backgroundColor: '#2563EB',
   },
   buttonText: {
     color: '#fff',
