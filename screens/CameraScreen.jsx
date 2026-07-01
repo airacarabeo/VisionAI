@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
-export default function CameraScreen({ navigation }) {
+export default function CameraScreen({ navigation } = {}) {
   const cameraRef = useRef(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraReady, setCameraReady] = useState(false);
@@ -20,8 +20,8 @@ export default function CameraScreen({ navigation }) {
       setCaptureError(null);
 
       const result = await cameraRef.current.takePictureAsync({
+        base64: true,
         quality: 0.3,
-        skipProcessing: true,
       });
 
       if (!result?.uri) {
@@ -30,7 +30,14 @@ export default function CameraScreen({ navigation }) {
       }
 
       setPhotoUri(result.uri);
-      navigation.navigate('Preview', { photoUri: result.uri });
+      if (navigation?.navigate) {
+        navigation.navigate('Preview', {
+          base64Image: result.base64,
+          photoUri: result.uri,
+        });
+      } else {
+        setCaptureError('Navigation is not ready. Please restart the app.');
+      }
     } catch {
       setCaptureError('Failed to capture image. Please try again.');
     } finally {
@@ -57,7 +64,10 @@ export default function CameraScreen({ navigation }) {
         ref={cameraRef}
         style={styles.camera}
         facing="back"
+        mode="picture"
+        active
         onCameraReady={() => setCameraReady(true)}
+        onMountError={() => setCaptureError('Could not start the camera. Please restart the app.')}
       />
       {captureError ? <Text style={styles.captureError}>{captureError}</Text> : null}
       <View style={styles.captureContainer} testID={photoUri ? 'photo-captured' : 'photo-not-captured'}>

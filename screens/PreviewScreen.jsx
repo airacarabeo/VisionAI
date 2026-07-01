@@ -1,13 +1,30 @@
-import { View, Image, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, View, Image, TouchableOpacity, Text, StyleSheet } from 'react-native';
 
 import { imageToBase64 } from '../lib/gemini';
 
 export default function PreviewScreen({ route, navigation }) {
-  const { photoUri } = route.params;
+  const { base64Image, photoUri } = route.params;
+  const [selectedPrompt, setSelectedPrompt] = useState('academic');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState(null);
 
-  const goAnalyze = async (promptKey) => {
-    const base64Image = await imageToBase64(photoUri);
-    navigation.navigate('Result', { base64Image, promptKey });
+  const goAnalyze = async () => {
+    if (isAnalyzing) {
+      return;
+    }
+
+    try {
+      setError(null);
+      setIsAnalyzing(true);
+
+      const imageData = base64Image || (await imageToBase64(photoUri));
+      navigation.navigate('Result', { base64Image: imageData, promptKey: selectedPrompt });
+    } catch (prepareError) {
+      setError(prepareError.message || 'Could not prepare this image. Please retake the photo.');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -15,15 +32,41 @@ export default function PreviewScreen({ route, navigation }) {
       <Image source={{ uri: photoUri }} style={styles.previewImage} resizeMode="contain" />
 
       <View style={styles.personaRow}>
-        <TouchableOpacity style={[styles.personaButton, styles.academicButton]} onPress={() => goAnalyze('academic')}>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        <TouchableOpacity
+          disabled={isAnalyzing}
+          style={[
+            styles.personaButton,
+            styles.academicButton,
+            selectedPrompt === 'academic' && styles.selectedButton,
+            isAnalyzing && styles.disabledButton,
+          ]}
+          onPress={() => setSelectedPrompt('academic')}>
           <Text style={styles.personaLabel}>Academic Analysis</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.personaButton, styles.safetyButton]} onPress={() => goAnalyze('safety')}>
+        <TouchableOpacity
+          disabled={isAnalyzing}
+          style={[
+            styles.personaButton,
+            styles.safetyButton,
+            selectedPrompt === 'safety' && styles.selectedButton,
+            isAnalyzing && styles.disabledButton,
+          ]}
+          onPress={() => setSelectedPrompt('safety')}>
           <Text style={styles.personaLabel}>Safety Analysis</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.personaButton, styles.inventoryButton]} onPress={() => goAnalyze('inventory')}>
+        <TouchableOpacity
+          disabled={isAnalyzing}
+          style={[
+            styles.personaButton,
+            styles.inventoryButton,
+            selectedPrompt === 'inventory' && styles.selectedButton,
+            isAnalyzing && styles.disabledButton,
+          ]}
+          onPress={() => setSelectedPrompt('inventory')}>
           <Text style={styles.personaLabel}>Inventory Analysis</Text>
         </TouchableOpacity>
       </View>
@@ -31,6 +74,12 @@ export default function PreviewScreen({ route, navigation }) {
       <View style={styles.buttonRow}>
         <TouchableOpacity style={[styles.button, styles.retakeButton]} onPress={() => navigation.goBack()}>
           <Text style={styles.buttonText}>Retake</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          disabled={isAnalyzing}
+          style={[styles.button, styles.analyzeButton, isAnalyzing && styles.disabledButton]}
+          onPress={goAnalyze}>
+          {isAnalyzing ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Analyze</Text>}
         </TouchableOpacity>
       </View>
     </View>
@@ -74,6 +123,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
+  disabledButton: {
+    opacity: 0.65,
+  },
+  selectedButton: {
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  errorText: {
+    color: '#FCA5A5',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
   buttonRow: {
     flexDirection: 'row',
     gap: 16,
@@ -91,6 +153,9 @@ const styles = StyleSheet.create({
   },
   retakeButton: {
     backgroundColor: '#4B5563',
+  },
+  analyzeButton: {
+    backgroundColor: '#2563EB',
   },
   buttonText: {
     color: '#fff',

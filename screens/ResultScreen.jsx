@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { analyzeImage } from '../lib/gemini';
 
@@ -23,7 +23,29 @@ ${JSON_FORMAT_INSTRUCTIONS}`,
 ${JSON_FORMAT_INSTRUCTIONS}`,
 };
 
-export default function ResultScreen({ route }) {
+function parseAnalysis(text) {
+  const cleanedText = text
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .trim();
+  const jsonStart = cleanedText.indexOf('{');
+  const jsonEnd = cleanedText.lastIndexOf('}');
+
+  if (jsonStart === -1 || jsonEnd === -1) {
+    throw new Error('Gemini did not return JSON.');
+  }
+
+  const parsed = JSON.parse(cleanedText.slice(jsonStart, jsonEnd + 1));
+
+  return {
+    objects: Array.isArray(parsed.objects) ? parsed.objects : [],
+    context: parsed.context || '',
+    activities: parsed.activities || '',
+    recommendations: parsed.recommendations || '',
+  };
+}
+
+export default function ResultScreen({ route, navigation }) {
   const { base64Image, promptKey } = route.params;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,14 +53,27 @@ export default function ResultScreen({ route }) {
 
   async function runAnalysis() {
     try {
+      setAnalysis(null);
+      setError(null);
+      setLoading(true);
+
       const prompt = PROMPTS[promptKey] || PROMPTS.academic;
       const result = await analyzeImage(base64Image, prompt);
-      const text = result.candidates[0].content.parts[0].text;
-      const parsedAnalysis = JSON.parse(text);
+      const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!text) {
+        throw new Error('Gemini returned an empty response.');
+      }
+
+      const parsedAnalysis = parseAnalysis(text);
 
       setAnalysis(parsedAnalysis);
-    } catch {
-      setError('Could not analyze this image. Please try again.');
+    } catch (analysisError) {
+      if (analysisError.code === 'QUOTA_EXCEEDED') {
+        setError('Gemini quota exceeded. Please wait a few minutes, check your Google AI Studio quota, or use another API key.');
+      } else {
+        setError(analysisError.message || 'Could not analyze this image. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -61,6 +96,14 @@ export default function ResultScreen({ route }) {
     return (
       <View style={styles.centeredContainer}>
         <Text style={styles.errorText}>{error}</Text>
+        <View style={styles.errorActions}>
+          <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={() => navigation.goBack()}>
+            <Text style={styles.actionButtonText}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionButton, styles.primaryButton]} onPress={runAnalysis}>
+            <Text style={styles.actionButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -118,6 +161,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  errorActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  actionButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 104,
+    minHeight: 48,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+  },
+  primaryButton: {
+    backgroundColor: '#2563EB',
+  },
+  secondaryButton: {
+    backgroundColor: '#4B5563',
+  },
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
   section: {
     marginBottom: 24,
