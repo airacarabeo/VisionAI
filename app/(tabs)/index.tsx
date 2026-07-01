@@ -7,6 +7,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
 
+const GEMINI_KEY = process.env.EXPO_PUBLIC_GEMINI_KEY;
+console.log('GEMINI_KEY', GEMINI_KEY);
+
 export default function HomeScreen() {
   return (
     <ParallaxScrollView
